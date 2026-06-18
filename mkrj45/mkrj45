@@ -45,46 +45,67 @@ _sourced \
 
 _global_variables() {
   make_date=""
-  loopback_device=""
+  device_loopback=""
   target_address=""
   quiet=""
   color=""
 }
 
+_requirements() {
+  _check_cmd \
+    "ifconfig" \
+    "net-tools"
+  _check_cmd \
+    "awk" \
+    "gawk"
+  _check_cmd \
+    "grep"
+  _check_cmd \
+    "ip" \
+    "iproute2"
+}
+
+_devices_loopback_get() {
+  ip \
+    link \
+      show |
+    grep \
+      -i \
+      "<loopback,UP,LOWER_UP>" |
+      awk \
+        '{print $2}'
+}
+
 _mkrj45() {
   local \
-    _loopback_device="${1}" \
+    _device_loopback="${1}" \
     _target_address="${2}" \
     _devices_loopback=() \
     _ifconfig_args=() \
     _cmd=() \
     _msg=()
   _devices_loopback+=( $(
-    ip \
-      link \
-        show |
-      grep \
-        -i \
-        "<loopback,UP,LOWER_UP>" |
-        awk \
-          '{print $2}')
+    _devices_loopback_get)
   )
-  if [[ " ${_devices_loopback[*]} " == *" ${_loopback_device} "* ]]; then
+  if [[ " ${_devices_loopback[*]} " == *" ${_device_loopback} "* ]]; then
     _msg=(
-      "Device '${_loopback_device}'"
+      "Device '${_device_loopback}'"
       "already exists."
     )
     _msg_error \
       "${_msg[*]}"
   else
+    _alias_current="$((
+      "${#_devices_loopback[@]}" - 1))"
     _msg=(
-      "Creating loopback network"
-      "device '${_loopback_device}'."
+      "Creating loopback network device alias"
+      "'${device_loopback}:${_alias_current}'."
+      "on address '${_target_address}'."
     )
     _msg_info \
       "${_msg[*]}"
     _ifconfig_args+=(
-      "${_loopback_device}"
+      "${_device_loopback}:${_alias_current}"
       "${_target_address}"
       "netmask"
       "255.0.0.0"
@@ -94,10 +115,31 @@ _mkrj45() {
       ifconfig
         "${_ifconfig_args[@]}"
     )
+    _msg=(
+      "Running '${_cmd[*]}'."
+    )
+    _msg_info \
+      "${_msg[*]}"
     su \
       -c \
         "${_cmd[*]}"
   fi
+}
+
+_target_address_auto_detect() {
+  local \
+    _devices_loopback=() \
+    _target_address
+  _devices_loopback+=( $(
+    _devices_loopback_get)
+  )
+  _device_current="$((
+    "${#_devices_loopback[@]}" + 1))"
+  _target_address="127.0.0.${_device_current}"
+  _set_override \
+    "target" \
+    "address" \
+    "${_target_address}"
 }
 
 _set_overrides() {
@@ -116,19 +158,16 @@ _set_overrides() {
     "date" \
     "$(_get_date_human)"
   _set_override \
-    "loopback" \
     "device" \
+    "loopback" \
     "lo"
-  _set_override \
-    "target" \
-    "address" \
-    "127.0.0.2"
+  _target_address_auto_detect
 }
 
 _show_config() {
   _msg_info "${app_name} configuration"
   _msg_info "                  Make date:   ${make_date}"
-  _msg_info "            Loopback device:   ${loopback_device}"
+  _msg_info "            Loopback device:   ${device_loopback}"
   _msg_info "             Target address:   ${target_address}"
 }
 
@@ -152,7 +191,7 @@ Usage:
   options:
      -A <target-address>      Target address for
                               the loopback device.
-                              Default: ${loopback_device}
+                              Default: ${target_address}
 
      -h                       This message.
      -c                       Enable color output
@@ -210,6 +249,9 @@ _cmdline_parse() {
   shift \
     $((
       OPTIND - 1 ))
+  if (( 0 < "${#}" )); then
+    device_loopback="${1}"
+  fi
 }
 
 _globals
@@ -219,7 +261,7 @@ _cmdline_parse \
 _set_overrides
 _show_config
 app_opts=(
-  "${loopback_device}"
+  "${device_loopback}"
   "${target_address}"
 )
 _mkrj45 \
