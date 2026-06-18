@@ -44,8 +44,11 @@ _sourced \
   "${_libevm}"
 
 _global_variables() {
+  make_date=""
   loopback_device=""
   target_address=""
+  quiet=""
+  color=""
 }
 
 _mkrj45() {
@@ -76,12 +79,12 @@ _mkrj45() {
   else
     _msg=(
       "Creating loopback network"
-      "device '${_loop_device}'."
+      "device '${_loopback_device}'."
     )
     _msg_info \
       "${_msg[*]}"
     _ifconfig_args+=(
-      "${_loop_device}"
+      "${_loopback_device}"
       "${_target_address}"
       "netmask"
       "255.0.0.0"
@@ -98,14 +101,68 @@ _mkrj45() {
 }
 
 _set_overrides() {
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+    quiet="y"
+  fi
+  if [[ -v override_color ]]; then
+    color="${override_color}"
+  elif [[ -z "${color}" ]]; then
+    color="n"
+  fi
   _set_override \
+    "make" \
+    "date" \
+    "$(_get_date_human)"
+  _set_override \
+    "loopback" \
     "device" \
-    "name" \
     "lo"
   _set_override \
     "target" \
     "address" \
     "127.0.0.2"
+}
+
+_show_config() {
+  _msg_info "${app_name} configuration"
+  _msg_info "                  Make date:   ${make_date}"
+  _msg_info "            Loopback device:   ${loopback_device}"
+  _msg_info "             Target address:   ${target_address}"
+}
+
+_usage() {
+  local \
+    _usage_text
+  IFS='' \
+    read \
+      -r \
+      -d '' \
+      _usage_text << \
+        ENDUSAGETEXT || true
+
+Add a loopback network device.
+
+Usage:
+  ${app_name}
+    [options]
+    <loopback-device-name>
+
+  options:
+     -A <target-address>      Target address for
+                              the loopback device.
+                              Default: ${loopback_device}
+
+     -h                       This message.
+     -c                       Enable color output
+     -v                       Enable verbose output
+ENDUSAGETEXT
+  _printf \
+    '%s\n' \
+    "${_usage_text}"
+  exit \
+    "${1}"
 }
 
 _cmdline_parse() {
@@ -115,17 +172,15 @@ _cmdline_parse() {
   _args+=(
     "$@"
   )
-  getopts_opts="$(
+  _getopts_opts="$(
     printf \
       "%s" \
       "A:" \
       "cvh")"
   while \
     getopts \
-      "${getopts_opts}" \
+      "${_getopts_opts}" \
       arg; do
-    _wallet_getopts_case
-    _libevm_app_getopts_case
     case \
       "${arg}" in
       A)
@@ -139,7 +194,7 @@ _cmdline_parse() {
            _usage \
              0 ;;
       *)
-        if [[ " ${getopts_opts} " != *"${arg}"* ]]; then
+        if [[ " ${_getopts_opts} " != *"${arg}"* ]]; then
           _msg=(
             "Invalid argument '${arg}'."
           )
@@ -157,9 +212,12 @@ _cmdline_parse() {
       OPTIND - 1 ))
 }
 
+_globals
 _global_variables
-_cmdline_parse
+_cmdline_parse \
+  "$@"
 _set_overrides
+_show_config
 app_opts=(
   "${loopback_device}"
   "${target_address}"
