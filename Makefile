@@ -74,20 +74,16 @@ build-man:
 install: install-doc install-man
 
 install-scripts:
-	$(INSTALL_EXE) \
+	$(_INSTALL_EXE) \
 	  "$(_PROJECT)/$(_PROJECT)" \
 	  "$(BIN_DIR)/$(_PROJECT)"
 
 install-doc:
 
-	# $(INSTALL_FILE) \
-	#   $(DOC_FILES) \
-	#   -t \
-	#   $(DOC_DIR)
-	$(INSTALL_FILE) \
-	  "README.md" \
+	$(_INSTALL_FILE) \
+	  $(DOCS_FILES) \
 	  -t \
-	  $(DOC_DIR)/README.man.md
+	  $(DOC_DIR)
 
 install-man:
 
