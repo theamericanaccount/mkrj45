@@ -34,7 +34,7 @@ Google query.
 <div
    align="center">
   <img
-     src="https://raw.githubusercontent.com/themartiancompany/mkrj45/<commit>/docs/how-to-make-gigabit-loopback-adapter.png"
+     src="https://raw.githubusercontent.com/themartiancompany/mkrj45/bbedcee6a915cff5dc539cba284f3a313b0efbc9/docs/how-to-make-gigabit-loopback-adapter.png"
      width="500"
      align="center"
   />
