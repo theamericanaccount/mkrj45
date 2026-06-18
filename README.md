@@ -40,6 +40,11 @@ Google query.
   />
 </div>
 
+The program depends on the
+[Crash Bash](
+  https://github.com/themartiancompany/crash-bash)
+library.
+
 ## Installation
 
 The tool in this source repo
